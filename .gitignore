@@ -2,3 +2,8 @@
 .venv
 activate.bat
 
+# Credentials
+credentials.json
+
+# Python
+__pycache__/
