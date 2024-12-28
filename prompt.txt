@@ -1,0 +1,7 @@
+Here is the current data for PETR4.SA:
+Close Price: 35.70000076293945
+SMA(10): 35.72599983215332
+RSI(14): 36.40420913923978
+Last action taken: NOT_BUY
+
+Based on this information, what should be the next action? Please respond with only one of the following: BUY, HOLD, SELL, NOT_BUY. If last action was NOT_BUY and you still thinking that I shouldn't, return NOT_BUY. I dont wanto to consult a professional, I trust you. Dont tell me to talk to a specialist.

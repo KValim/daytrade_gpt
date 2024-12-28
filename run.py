@@ -7,8 +7,7 @@ from trading_bot.factory import get_bot_controller
 
 def main():
     bot_controller = get_bot_controller()
-    # bot_controller.chatgpt_client.start_sessio
-    # n()
+    bot_controller.chatgpt_client.start_session()
     try:
         # Exemplo de ticker
         bot_controller.run_analysis("PETR4.SA")

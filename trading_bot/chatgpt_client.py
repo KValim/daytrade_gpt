@@ -1,11 +1,14 @@
 """
-ChatGPTClient module for manual interaction with ChatGPT.
+ChatGPTClient module for automated interaction with ChatGPT.
 """
 
-import time
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+import time
 
 
 class ChatGPTClientError(Exception):
@@ -13,49 +16,73 @@ class ChatGPTClientError(Exception):
 
 
 class ChatGPTClient:
-    """
-    Prints the prompt for manual interaction with ChatGPT.
-    """
-
-    def __init__(self, cookies_file: str = "cookies.json"):
+    def __init__(self, debugger_address="127.0.0.1:9222"):
         """
-        Initializes the ChatGPTClient (though we'll skip automated login).
+        Initializes the ChatGPTClient for automated interaction via Selenium.
         """
-        self.cookies_file = cookies_file
+        self.debugger_address = debugger_address
         self.driver = None
 
-    def start_session(self) -> None:
+    def start_session(self):
         """
-        Starts a browser session - in this simplified version,
-        we won't do anything besides initializing the driver if needed.
+        Starts a browser session connected to an existing Edge debugging instance.
         """
+        options = webdriver.EdgeOptions()
+        options.add_experimental_option("debuggerAddress", self.debugger_address)
         try:
-            # Se ainda quiser abrir o Edge (não é realmente necessário, pois faremos tudo manualmente)
-            service = Service(EdgeChromiumDriverManager().install())
-            self.driver = webdriver.Edge(service=service)
-            self.driver.get("https://chat.openai.com/")
-            print("Selenium session started, but no automated login is performed.")
-            time.sleep(3)
-        except Exception as err:
-            raise ChatGPTClientError("Failed to start Selenium session.") from err
+            self.driver = webdriver.Edge(
+                service=Service(EdgeChromiumDriverManager().install()),
+                options=options
+            )
+            print("Connected to Edge with debugging enabled.")
+        except Exception as e:
+            raise ChatGPTClientError(f"Failed to start Selenium session: {e}")
 
     def send_prompt(self, prompt: str) -> str:
         """
-        Instead of sending prompt via Selenium, prints the prompt for manual use,
-        then waits for user to paste the ChatGPT response back.
+        Sends a prompt to ChatGPT and captures the response.
         """
         try:
-            print("===== COPY THE PROMPT BELOW AND SEND IT MANUALLY IN YOUR BROWSER =====")
-            print(prompt)
-            print("===== AFTER GETTING THE RESPONSE FROM CHATGPT, PASTE IT BELOW =====")
-            response = input("Paste the ChatGPT response here:\n> ")
-            return response
-        except Exception as err:
-            raise ChatGPTClientError("Failed to process manual prompt/response.") from err
+            # Ensure ChatGPT is open
+            self.driver.get("https://chatgpt.com/?temporary-chat=true")
+            
+            time.sleep(3)
 
-    def stop_session(self) -> None:
+            # Locate the input field and send the prompt
+            textarea = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, "prompt-textarea"))
+            )
+            textarea.clear()
+            textarea.send_keys(prompt)
+
+            # Locate and click the send button
+            send_button = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='send-button']"))
+            )
+            send_button.click()
+
+            # Wait for the response
+            response_xpath = "/html/body/div[1]/div[2]/main/div[1]/div[1]/div/div/div/div/article[2]/div/div/div[2]/div/div[1]/div/div/div/p"
+            response_element = WebDriverWait(self.driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, response_xpath))
+            )
+
+            # Wait for the response to complete
+            previous_text = ""
+            while True:
+                current_text = response_element.text
+                if current_text == previous_text:
+                    break
+                previous_text = current_text
+                time.sleep(2)
+
+            return response_element.text
+        except Exception as e:
+            raise ChatGPTClientError(f"Failed to send prompt or capture response: {e}")
+
+    def stop_session(self):
         """
-        Closes the browser session if opened.
+        Stops the browser session.
         """
         if self.driver:
             self.driver.quit()

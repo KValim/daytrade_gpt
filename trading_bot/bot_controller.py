@@ -28,7 +28,7 @@ class BotController:
 
     def run_analysis(self, ticker: str) -> None:
         try:
-            # 1. Descobre a ultima ação
+            # 1. Descobre a última ação
             last_action = self.sheets_client.get_last_action(ticker)
 
             # 2. Coleta e processa dados
@@ -39,34 +39,28 @@ class BotController:
             # 3. Monta o prompt com last_action
             prompt = self._build_prompt(ticker, latest, last_action)
 
-            # 4. Salva o prompt em um arquivo
-            self.save_prompt_to_file(prompt, f"prompt.txt")
-
-            print(f"Prompt for {ticker} saved. Please copy and use it in ChatGPT.")
-            
-            # 5. Aguarda resposta manual do GPT
-            response = input("Paste the GPT response (BUY, HOLD, SELL, NOT_BUY):\n> ")
+            # 4. Envia o prompt ao ChatGPT via Selenium e captura a resposta
+            response = self.chatgpt_client.send_prompt(prompt)
             valid_responses = {"BUY", "HOLD", "SELL", "NOT_BUY"}
             parsed_response = self._parse_gpt_response(response, valid_responses)
 
-            # 6. Gera timestamp
-            from datetime import datetime
+            # 5. Gera timestamp
             timestamp = datetime.now().isoformat()
 
-            # 7. Extrai dados do DataFrame
+            # 6. Extrai dados do DataFrame
             close_price = latest["Close"].values[0]
             sma_10 = latest["SMA_10"].values[0]
             rsi_14 = latest["RSI_14"].values[0]
 
-            # 8. Salva tudo no Sheets
+            # 7. Salva tudo no Sheets
             self.sheets_client.append_trade([
                 timestamp,
                 ticker,
-                last_action,     # o que passamos pro GPT
+                last_action,
                 str(close_price),
                 str(sma_10),
                 str(rsi_14),
-                parsed_response  # decisão final do GPT
+                parsed_response
             ])
         except Exception as err:
             raise BotControllerError("Failed to run analysis.") from err
@@ -91,11 +85,11 @@ class BotController:
         # Instruções para ChatGPT responder apenas com BUY, HOLD, SELL ou NOT_BUY
         # e levar em conta a última ação tomada (last_action).
         prompt = (
-            f"Here is the current data for {ticker}:\n"
-            f"Close Price: {close_price}\n"
-            f"SMA(10): {sma_10}\n"
-            f"RSI(14): {rsi_14}\n"
-            f"Last action taken: {last_action}\n\n"
+            f"Here is the current data for {ticker}: "
+            f"Close Price: {close_price}. "
+            f"SMA(10): {sma_10}. "
+            f"RSI(14): {rsi_14}. "
+            f"Last action taken: {last_action}. "
             "Based on this information, what should be the next action? "
             "Please respond with only one of the following: BUY, HOLD, SELL, NOT_BUY. "
             "If last action was NOT_BUY and you still thinking that I shouldn't, return NOT_BUY. "

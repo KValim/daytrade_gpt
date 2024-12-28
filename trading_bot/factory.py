@@ -16,7 +16,7 @@ def get_bot_controller() -> BotController:
     data_collector = DataCollector()
     indicator_calculator = IndicatorCalculator()
     sheets_client = SheetsClient()
-    chatgpt_client = ChatGPTClient()
+    chatgpt_client = ChatGPTClient(debugger_address="127.0.0.1:9222")
 
     bot_controller = BotController(
         data_collector=data_collector,
@@ -25,3 +25,4 @@ def get_bot_controller() -> BotController:
         chatgpt_client=chatgpt_client
     )
     return bot_controller
+
